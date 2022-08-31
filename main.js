@@ -2,7 +2,14 @@
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 
-let cameraDistance = 5
+const playerSize = 0.25
+const cubeSize = 1
+
+let currentCubeIndex = 0
+
+const speed = 5
+
+let cameraDistance = 4
 
 let cameraθ1 = 5*Math.PI/4
 let cameraθ2 = Math.PI/4
@@ -19,23 +26,19 @@ scene.add(ambient_light);
 const light = new THREE.DirectionalLight(0xFFFFFF, 1)
 scene.add(light)
 
-// Axes
-const axesHelper = new THREE.AxesHelper(5)
-scene.add(axesHelper)
 
 // Player
-const playerGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
+const playerGeometry = new THREE.BoxGeometry(playerSize, playerSize, playerSize)
 const playerMaterial = new THREE.MeshPhongMaterial({color: 0xffff00})
 const player = new THREE.Mesh(playerGeometry, playerMaterial)
 scene.add(player)
 
-player.position.y = 0.75
+player.position.y = (cubeSize+playerSize)/2
 
 
 // Add cubes
-const geometry = new THREE.BoxGeometry(1, 1, 1)
+const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
 const material = new THREE.MeshPhongMaterial({color: 0x00ff00})
-
 const cubes = [new THREE.Mesh(geometry, material)]
 scene.add(cubes[0])
 
@@ -50,9 +53,24 @@ for (let i = 0; i < 500; i++) {
 		cube.position.z = cubes[cubes.length - 1].position.z + 1
 	}
 	cubes.push(cube)
-	scene.add(cube)
+	scene.add(cubes[i])
 }
 
+let direction = cubes[1].position.x ? false : true
+let v = new THREE.Vector3(0, 0, 0)
+
+
+function calculateCameraθ1(num) {
+	let x = z = 0
+	for (let i = currentCubeIndex+1; i < currentCubeIndex + num+1; i++) {
+		x += cubes[i].position.x - cubes[i-1].position.x
+		z += cubes[i].position.z - cubes[i-1].position.z
+	}
+	cameraθ1 = 5*Math.PI/4 + Math.PI/4*((x-z)/num)
+	console.log(Math.PI/4*((x-z)/num), x, z)
+}
+
+// calculateCameraθ1(10)
 
 
 function repositionCamera() {
@@ -90,18 +108,15 @@ window.addEventListener('resize', () => {
 camera.lookAt(player.position)
 
 
-a = false
-v = new THREE.Vector3(0, 0, 0)
-
 // Key presses
 function keyPress(event) {
 	if (event.key == " ") {
-		a = !a
-		if (a) {
-			v = new THREE.Vector3(5, 0, 0)
+		direction = !direction
+		if (direction) {
+			v = new THREE.Vector3(speed, 0, 0)
 		}
 		else {
-			v = new THREE.Vector3(0, 0, 5)
+			v = new THREE.Vector3(0, 0, speed)
 		}
 	}
 	if (event.key == "a") {
@@ -117,17 +132,19 @@ function keyPress(event) {
 		cameraθ2 -= 0.1
 	}
 	if (event.key == "q") {
-		cameraDistance -= 0.1
+		cameraDistance -= 0.5
 	}
 	if (event.key == "e") {
-		cameraDistance += 0.1
+		cameraDistance += 0.5
 	}
 }
 
 
-document.addEventListener('keypress', event => keyPress(event))
+document.addEventListener('keypress', keyPress)
 
 const clock = new THREE.Clock()
+
+let gameOver = false
 
 const animate = function () {
 	requestAnimationFrame(animate)
@@ -136,8 +153,33 @@ const animate = function () {
 
 	player.position.addScaledVector(v, Δt)
 
-	repositionCamera()
-	// repositionLight()
+
+	if (!gameOver) {
+		// Check if player falls off the cubes
+		if (player.position.x - playerSize - (cubeSize-playerSize)/2 > cubes[currentCubeIndex].position.x) {
+			if (cubes[currentCubeIndex+1].position.x > cubes[currentCubeIndex].position.x) {
+				currentCubeIndex++
+			}
+			else {
+				gameOver = true
+				document.removeEventListener('keypress', keyPress)
+			}
+		}
+		if (player.position.z - playerSize - (cubeSize-playerSize)/2 > cubes[currentCubeIndex].position.z) {
+			if (cubes[currentCubeIndex+1].position.z > cubes[currentCubeIndex].position.z) {
+				currentCubeIndex++
+			}
+			else {
+				gameOver = true
+				document.removeEventListener('keypress', keyPress)
+			}
+		}
+		
+		repositionCamera()
+	}
+	else {
+		v.y -= 20 * Δt
+	}
 
 	renderer.render(scene, camera)
 }
