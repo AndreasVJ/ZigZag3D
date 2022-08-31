@@ -26,10 +26,12 @@ scene.add(ambient_light);
 const light = new THREE.DirectionalLight(0xFFFFFF, 1)
 scene.add(light)
 
+const textureLoader = new THREE.TextureLoader()
 
 // Player
 const playerGeometry = new THREE.BoxGeometry(playerSize, playerSize, playerSize)
-const playerMaterial = new THREE.MeshPhongMaterial({color: 0xffff00})
+const playerMaterial = new THREE.MeshPhysicalMaterial({color: 0xffff00})
+// const playerMaterial = new THREE.MeshPhongMaterial({map: textureLoader.load("./textures/player.png")})
 const player = new THREE.Mesh(playerGeometry, playerMaterial)
 scene.add(player)
 
@@ -37,14 +39,17 @@ player.position.y = (cubeSize+playerSize)/2
 
 
 // Add cubes
-const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
+const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
+const cubeMaterial = new THREE.MeshPhongMaterial({color: 0x00ff00})
+// const cubeMaterial = new THREE.MeshPhongMaterial({map: textureLoader.load("./textures/tile2.png")})
 const material = new THREE.MeshPhongMaterial({color: 0x00ff00})
-const cubes = [new THREE.Mesh(geometry, material)]
+const cubes = [new THREE.Mesh(cubeGeometry, cubeMaterial)]
 scene.add(cubes[0])
 
 for (let i = 0; i < 500; i++) {
-	const cube = new THREE.Mesh(geometry, material)
+	const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
 	if (Math.round(Math.random())) {
+	// if (true) {
 		cube.position.x = cubes[cubes.length - 1].position.x + 1
 		cube.position.z = cubes[cubes.length - 1].position.z
 	}
@@ -132,10 +137,10 @@ function keyPress(event) {
 		cameraθ2 -= 0.1
 	}
 	if (event.key == "q") {
-		cameraDistance -= 0.5
+		cameraDistance += 0.5
 	}
 	if (event.key == "e") {
-		cameraDistance += 0.5
+		cameraDistance -= 0.5
 	}
 }
 
@@ -145,6 +150,8 @@ document.addEventListener('keypress', keyPress)
 const clock = new THREE.Clock()
 
 let gameOver = false
+
+console.log(player.position.x - playerSize)
 
 const animate = function () {
 	requestAnimationFrame(animate)
@@ -156,20 +163,20 @@ const animate = function () {
 
 	if (!gameOver) {
 		// Check if player falls off the cubes
-		if (player.position.x - playerSize - (cubeSize-playerSize)/2 > cubes[currentCubeIndex].position.x) {
+		if (player.position.x + playerSize/2 > cubes[currentCubeIndex].position.x + cubeSize/2) {
 			if (cubes[currentCubeIndex+1].position.x > cubes[currentCubeIndex].position.x) {
 				currentCubeIndex++
 			}
-			else {
+			else if (player.position.x - playerSize/2 > cubes[currentCubeIndex].position.x + cubeSize/2){
 				gameOver = true
 				document.removeEventListener('keypress', keyPress)
 			}
 		}
-		if (player.position.z - playerSize - (cubeSize-playerSize)/2 > cubes[currentCubeIndex].position.z) {
+		if (player.position.z + playerSize/2 > cubes[currentCubeIndex].position.z + cubeSize/2) {
 			if (cubes[currentCubeIndex+1].position.z > cubes[currentCubeIndex].position.z) {
 				currentCubeIndex++
 			}
-			else {
+			else if (player.position.z - playerSize/2 > cubes[currentCubeIndex].position.z + cubeSize/2) {
 				gameOver = true
 				document.removeEventListener('keypress', keyPress)
 			}
