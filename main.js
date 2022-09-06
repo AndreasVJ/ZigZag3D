@@ -2,17 +2,27 @@
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 
+
 const playerSize = 0.25
 const cubeSize = 1
 
 let currentCubeIndex = 0
 
-const speed = 5
+const playerSpeed = 5
+const cameraSpeed = playerSpeed/2
+
+const pathLength = 500
 
 let cameraDistance = 4
 
 let cameraθ1 = 5*Math.PI/4
-let cameraθ2 = Math.PI/4
+let cameraθ2 = Math.PI/6
+
+const cameraLookOrigin = new THREE.Vector3(0, (cubeSize+playerSize)/2, 0)
+const cameraLookPoint = new THREE.Vector3(0, (cubeSize+playerSize)/2, 0)
+let cameraLerpAlpha = 0
+
+let playerVelVec
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({alpha: true})
@@ -20,82 +30,57 @@ renderer.setSize(window.innerWidth, window.innerHeight)
 document.body.appendChild(renderer.domElement)
 
 // Light
-const ambient_light = new THREE.AmbientLight( 0x505050 )
-scene.add(ambient_light);
+const ambientLight = new THREE.AmbientLight( 0x505050 )
+scene.add(ambientLight);
 
 const light = new THREE.DirectionalLight(0xFFFFFF, 1)
+light.position.set(-50, 100, 0)
 scene.add(light)
 
-const textureLoader = new THREE.TextureLoader()
 
 // Player
 const playerGeometry = new THREE.BoxGeometry(playerSize, playerSize, playerSize)
-const playerMaterial = new THREE.MeshPhysicalMaterial({color: 0xffff00})
-// const playerMaterial = new THREE.MeshPhongMaterial({map: textureLoader.load("./textures/player.png")})
+const playerMaterial = new THREE.MeshPhysicalMaterial({ color: "orange" })
 const player = new THREE.Mesh(playerGeometry, playerMaterial)
-scene.add(player)
-
 player.position.y = (cubeSize+playerSize)/2
+player.name = "player"
+scene.add(player)
 
 
 // Add cubes
 const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
 const cubeMaterial = new THREE.MeshPhongMaterial({color: 0x00ff00})
-// const cubeMaterial = new THREE.MeshPhongMaterial({map: textureLoader.load("./textures/tile2.png")})
-const material = new THREE.MeshPhongMaterial({color: 0x00ff00})
-const cubes = [new THREE.Mesh(cubeGeometry, cubeMaterial)]
-scene.add(cubes[0])
+let cubes = []
 
-for (let i = 0; i < 500; i++) {
-	const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
-	if (Math.round(Math.random())) {
-	// if (true) {
-		cube.position.x = cubes[cubes.length - 1].position.x + 1
-		cube.position.z = cubes[cubes.length - 1].position.z
+function createPath() {
+	cubes = []
+	cubes.push(new THREE.Mesh(cubeGeometry, cubeMaterial))
+	cubes[0].name = "0"
+	scene.add(cubes[0])
+	
+	for (let i = 0; i < pathLength; i++) {
+		const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
+		if (Math.round(Math.random())) {
+			cube.position.x = cubes[cubes.length - 1].position.x + 1
+			cube.position.z = cubes[cubes.length - 1].position.z
+		}
+		else {
+			cube.position.x = cubes[cubes.length - 1].position.x
+			cube.position.z = cubes[cubes.length - 1].position.z + 1
+		}
+		cube.name = "cube" + i+1
+		cubes.push(cube)
+		scene.add(cubes[i+1])
 	}
-	else {
-		cube.position.x = cubes[cubes.length - 1].position.x
-		cube.position.z = cubes[cubes.length - 1].position.z + 1
+	playerVelVec = new THREE.Vector3(cubes[1].position.x ? playerSpeed : 0, 0, cubes[1].position.z ? playerSpeed : 0)  
+}
+
+function deletePath() {
+	for (let cube of cubes) {
+		let selectedCube = scene.getObjectByName(cube.name);
+    	scene.remove( selectedCube )
 	}
-	cubes.push(cube)
-	scene.add(cubes[i])
 }
-
-let direction = cubes[1].position.x ? false : true
-let v = new THREE.Vector3(0, 0, 0)
-
-
-function calculateCameraθ1(num) {
-	let x = z = 0
-	for (let i = currentCubeIndex+1; i < currentCubeIndex + num+1; i++) {
-		x += cubes[i].position.x - cubes[i-1].position.x
-		z += cubes[i].position.z - cubes[i-1].position.z
-	}
-	cameraθ1 = 5*Math.PI/4 + Math.PI/4*((x-z)/num)
-	console.log(Math.PI/4*((x-z)/num), x, z)
-}
-
-// calculateCameraθ1(10)
-
-
-function repositionCamera() {
-	camera.position.x = player.position.x + cameraDistance*Math.cos(cameraθ1)*Math.cos(cameraθ2)
-	camera.position.y = player.position.y + cameraDistance*Math.sin(cameraθ2)
-	camera.position.z = player.position.z + cameraDistance*Math.sin(cameraθ1)*Math.cos(cameraθ2)
-
-	camera.lookAt(player.position)
-}
-
-function repositionLight() {
-	light.position.x = player.position.x - 50
-	light.position.y = player.position.y + 100
-	light.position.z = player.position.z + 20
-
-	light.target.position.set(player.position.x, player.position.y, player.position.z)
-}
-
-repositionCamera()
-repositionLight()
 
 
 window.addEventListener('resize', () => {
@@ -107,40 +92,52 @@ window.addEventListener('resize', () => {
     // Update renderer
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+	renderer.render(scene, camera)
+
 })
 
 
-camera.lookAt(player.position)
+function lerpCamera() {
+	cameraLookPoint.lerpVectors(
+		cameraLookOrigin,
+		new THREE.Vector3(player.position.x, player.position.y, player.position.z), 
+		cameraLerpAlpha
+	)
+	camera.lookAt(cameraLookPoint)
+}
 
 
 // Key presses
 function keyPress(event) {
 	if (event.key == " ") {
-		direction = !direction
-		if (direction) {
-			v = new THREE.Vector3(speed, 0, 0)
+		if (gameStarted) {
+			if (playerVelVec.x) {
+				playerVelVec = new THREE.Vector3(0, 0, playerSpeed)
+			}
+			else {
+				playerVelVec = new THREE.Vector3(playerSpeed, 0, 0)
+			}
 		}
 		else {
-			v = new THREE.Vector3(0, 0, speed)
+			gameStarted = true
+			animateGame()
 		}
 	}
 	if (event.key == "a") {
-		cameraθ1 += 0.1
+		cameraLerpAlpha += 0.1
+		console.log(cameraLerpAlpha)
+		lerpCamera()
+		camera.lookAt(cameraLookPoint)
+		renderer.render(scene, camera)
+		
 	}
 	if (event.key == "d") {
-		cameraθ1 -= 0.1
-	}
-	if (event.key == "w") {
-		cameraθ2 += 0.1
-	}
-	if (event.key == "s") {
-		cameraθ2 -= 0.1
-	}
-	if (event.key == "q") {
-		cameraDistance += 0.5
-	}
-	if (event.key == "e") {
-		cameraDistance -= 0.5
+		cameraLerpAlpha -= 0.1
+		console.log(cameraLerpAlpha)
+		lerpCamera()
+		camera.lookAt(cameraLookPoint)
+		renderer.render(scene, camera)
 	}
 }
 
@@ -149,19 +146,57 @@ document.addEventListener('keypress', keyPress)
 
 const clock = new THREE.Clock()
 
+let gameStarted = false
 let gameOver = false
 
-console.log(player.position.x - playerSize)
 
-const animate = function () {
-	requestAnimationFrame(animate)
+function repositionCamera() {
+	camera.position.x = player.position.x + cameraDistance*Math.cos(cameraθ1)*Math.cos(cameraθ2)
+	camera.position.y = player.position.y + cameraDistance*Math.sin(cameraθ2)
+	camera.position.z = player.position.z + cameraDistance*Math.sin(cameraθ1)*Math.cos(cameraθ2)
 
-	Δt = clock.getDelta()
+	camera.lookAt(cameraLookPoint)
+}
 
-	player.position.addScaledVector(v, Δt)
+repositionCamera()
 
 
+function animateGame() {
 	if (!gameOver) {
+
+		const Δt = clock.getDelta()
+
+		// Move player and camera
+		player.position.addScaledVector(playerVelVec, Δt)
+		camera.position.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
+		cameraLookOrigin.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
+
+		const playerToCameraOrigin = cameraLookOrigin.distanceTo(new THREE.Vector3(player.position.x, player.position.y, player.position.z))
+
+		console.log(player.position.x - cameraLookOrigin.x, player.position.z - cameraLookOrigin.z)
+
+		if (playerToCameraOrigin > 4) {
+			if (player.position.x - cameraLookOrigin.x > 0) {
+				camera.position.addScaledVector(new THREE.Vector3(cameraSpeed, 0, -cameraSpeed), Δt)
+				cameraLookOrigin.addScaledVector(new THREE.Vector3(cameraSpeed, 0, -cameraSpeed), Δt)
+			}
+			else {
+				camera.position.addScaledVector(new THREE.Vector3(-cameraSpeed, 0, cameraSpeed), Δt)
+				cameraLookOrigin.addScaledVector(new THREE.Vector3(-cameraSpeed, 0, cameraSpeed), Δt)
+			}
+		}
+
+		// Change camera angle
+		if (playerToCameraOrigin > 1 && cameraLerpAlpha < 0.5) {
+			cameraLerpAlpha += Δt/2
+		}
+		else if (playerToCameraOrigin < 1 && cameraLerpAlpha > 0) {
+			cameraLerpAlpha -= Δt/2
+		}
+
+		lerpCamera()
+		camera.lookAt(cameraLookPoint)
+
 		// Check if player falls off the cubes
 		if (player.position.x + playerSize/2 > cubes[currentCubeIndex].position.x + cubeSize/2) {
 			if (cubes[currentCubeIndex+1].position.x > cubes[currentCubeIndex].position.x) {
@@ -181,14 +216,27 @@ const animate = function () {
 				document.removeEventListener('keypress', keyPress)
 			}
 		}
+
+
+		renderer.render(scene, camera)
 		
-		repositionCamera()
+		requestAnimationFrame(animateGame)
 	}
 	else {
-		v.y -= 20 * Δt
+		animateGameOver()
 	}
 
-	renderer.render(scene, camera)
 }
 
-animate()
+function animateGameOver() {
+	const Δt = clock.getDelta()
+	playerVelVec.y -= 20 * Δt
+	player.position.addScaledVector(playerVelVec, Δt)
+	renderer.render(scene, camera)
+	if (player.position.y > -100) {
+		requestAnimationFrame(animateGameOver)
+	}
+}
+
+createPath()
+renderer.render(scene, camera)
