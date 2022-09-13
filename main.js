@@ -13,7 +13,7 @@ const cameraSpeed = playerSpeed/2
 
 const pathLength = 500
 
-let cameraDistance = 4
+let cameraDistance = 5
 
 let cameraθ1 = 5*Math.PI/4
 let cameraθ2 = Math.PI/6
@@ -55,7 +55,7 @@ let cubes = []
 function createPath() {
 	cubes = []
 	cubes.push(new THREE.Mesh(cubeGeometry, cubeMaterial))
-	cubes[0].name = "0"
+	cubes[0].name = "cube0"
 	scene.add(cubes[0])
 	
 	for (let i = 0; i < pathLength; i++) {
@@ -77,8 +77,8 @@ function createPath() {
 
 function deletePath() {
 	for (let cube of cubes) {
-		let selectedCube = scene.getObjectByName(cube.name);
-    	scene.remove( selectedCube )
+		let selectedCube = scene.getObjectByName(cube.name)
+    	scene.remove(selectedCube)
 	}
 }
 
@@ -94,18 +94,8 @@ window.addEventListener('resize', () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
 	renderer.render(scene, camera)
-
+	
 })
-
-
-function lerpCamera() {
-	cameraLookPoint.lerpVectors(
-		cameraLookOrigin,
-		new THREE.Vector3(player.position.x, player.position.y, player.position.z), 
-		cameraLerpAlpha
-	)
-	camera.lookAt(cameraLookPoint)
-}
 
 
 // Key presses
@@ -123,21 +113,6 @@ function keyPress(event) {
 			gameStarted = true
 			animateGame()
 		}
-	}
-	if (event.key == "a") {
-		cameraLerpAlpha += 0.1
-		console.log(cameraLerpAlpha)
-		lerpCamera()
-		camera.lookAt(cameraLookPoint)
-		renderer.render(scene, camera)
-		
-	}
-	if (event.key == "d") {
-		cameraLerpAlpha -= 0.1
-		console.log(cameraLerpAlpha)
-		lerpCamera()
-		camera.lookAt(cameraLookPoint)
-		renderer.render(scene, camera)
 	}
 }
 
@@ -169,32 +144,23 @@ function animateGame() {
 		// Move player and camera
 		player.position.addScaledVector(playerVelVec, Δt)
 		camera.position.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
-		cameraLookOrigin.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
+		cameraLookPoint.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
 
-		const playerToCameraOrigin = cameraLookOrigin.distanceTo(new THREE.Vector3(player.position.x, player.position.y, player.position.z))
+		const playerToCameraLookPoint = cameraLookPoint.distanceTo(new THREE.Vector3(player.position.x, player.position.y, player.position.z))
 
-		console.log(player.position.x - cameraLookOrigin.x, player.position.z - cameraLookOrigin.z)
 
-		if (playerToCameraOrigin > 4) {
-			if (player.position.x - cameraLookOrigin.x > 0) {
-				camera.position.addScaledVector(new THREE.Vector3(cameraSpeed, 0, -cameraSpeed), Δt)
-				cameraLookOrigin.addScaledVector(new THREE.Vector3(cameraSpeed, 0, -cameraSpeed), Δt)
+		if (playerToCameraLookPoint > camera.aspect) {
+			const v = playerToCameraLookPoint - camera.aspect
+			if (player.position.x - cameraLookPoint.x > 0) {
+				camera.position.addScaledVector(new THREE.Vector3(cameraSpeed*v, 0, -cameraSpeed*v), Δt)
+				cameraLookPoint.addScaledVector(new THREE.Vector3(cameraSpeed*v, 0, -cameraSpeed*v), Δt)
 			}
 			else {
-				camera.position.addScaledVector(new THREE.Vector3(-cameraSpeed, 0, cameraSpeed), Δt)
-				cameraLookOrigin.addScaledVector(new THREE.Vector3(-cameraSpeed, 0, cameraSpeed), Δt)
+				camera.position.addScaledVector(new THREE.Vector3(-cameraSpeed*v, 0, cameraSpeed*v), Δt)
+				cameraLookPoint.addScaledVector(new THREE.Vector3(-cameraSpeed*v, 0, cameraSpeed*v), Δt)
 			}
 		}
-
-		// Change camera angle
-		if (playerToCameraOrigin > 1 && cameraLerpAlpha < 0.5) {
-			cameraLerpAlpha += Δt/2
-		}
-		else if (playerToCameraOrigin < 1 && cameraLerpAlpha > 0) {
-			cameraLerpAlpha -= Δt/2
-		}
-
-		lerpCamera()
+		
 		camera.lookAt(cameraLookPoint)
 
 		// Check if player falls off the cubes
