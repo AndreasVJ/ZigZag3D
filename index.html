@@ -1,12 +1,33 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<meta charset="utf-8">
+		<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 		<title>ZigZag</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@900&display=swap" rel="stylesheet">
 		<link rel="stylesheet" href="style.css">
+		<link rel="manifest" href="./manifest.json">
 	</head>
 	<body>
+
+		<div id="progress-container">
+			<div id="progress-background">
+				<div id="progress-bar"></div>
+			</div>
+		</div>
+
+		<div id="menu">
+			<h1 id="game-title">ZigZag3D</h1>
+			<div id="levels"></div>
+		</div>
+
+		<div id="game-result-menu">
+			<h2 id="game-result-text"></h2>
+			<button id="play-again">Play Again</button>
+			<button id="back-to-menu">Back To Menu</button>
+		</div>
+
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" referrerpolicy="no-referrer"></script>
+		<script src="game.js"></script>
 		<script src="main.js"></script>
 	</body>
 </html>

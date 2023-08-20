@@ -1,208 +1,110 @@
-// Scene and camera
-const scene = new THREE.Scene()
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+const body = document.getElementsByTagName("body")[0]
+const menu = document.getElementById("menu")
+const levelsDiv = document.getElementById("levels")
+const playAgainButton = document.getElementById("play-again")
+const backToMenuButton = document.getElementById("back-to-menu")
+const progressContainer = document.getElementById("progress-container")
 
 
-const playerSize = 0.25
-const cubeSize = 1
-
-let currentCubeIndex = 0
-
-const playerSpeed = 5
-const cameraSpeed = playerSpeed/2
-
-const pathLength = 500
-
-let cameraDistance = 5
-
-let cameraθ1 = 5*Math.PI/4
-let cameraθ2 = Math.PI/6
-
-const cameraLookOrigin = new THREE.Vector3(0, (cubeSize+playerSize)/2, 0)
-const cameraLookPoint = new THREE.Vector3(0, (cubeSize+playerSize)/2, 0)
-let cameraLerpAlpha = 0
-
-let playerVelVec
-
-// Renderer
-const renderer = new THREE.WebGLRenderer({alpha: true})
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
-
-// Light
-const ambientLight = new THREE.AmbientLight( 0x505050 )
-scene.add(ambientLight);
-
-const light = new THREE.DirectionalLight(0xFFFFFF, 1)
-light.position.set(-50, 100, 0)
-scene.add(light)
+magicInTheAir = new Audio("./audio/magic-in-the-air.mp3")
+pianoMelody = new Audio("./audio/piano-melody.mp3")
+fairyTaleFantasy = new Audio("./audio/fairy-tale-fantasy.mp3")
+marchOfTheSnowmen = new Audio("./audio/march-of-the-snowmen.mp3")
 
 
-// Player
-const playerGeometry = new THREE.BoxGeometry(playerSize, playerSize, playerSize)
-const playerMaterial = new THREE.MeshPhysicalMaterial({ color: "orange" })
-const player = new THREE.Mesh(playerGeometry, playerMaterial)
-player.position.y = (cubeSize+playerSize)/2
-player.name = "player"
-scene.add(player)
+let currentLevelLoader
 
-
-// Add cubes
-const cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
-const cubeMaterial = new THREE.MeshPhongMaterial({color: 0x00ff00})
-let cubes = []
-
-function createPath() {
-	cubes = []
-	cubes.push(new THREE.Mesh(cubeGeometry, cubeMaterial))
-	cubes[0].name = "cube0"
-	scene.add(cubes[0])
-	
-	for (let i = 0; i < pathLength; i++) {
-		const cube = new THREE.Mesh(cubeGeometry, cubeMaterial)
-		if (Math.round(Math.random())) {
-			cube.position.x = cubes[cubes.length - 1].position.x + 1
-			cube.position.z = cubes[cubes.length - 1].position.z
-		}
-		else {
-			cube.position.x = cubes[cubes.length - 1].position.x
-			cube.position.z = cubes[cubes.length - 1].position.z + 1
-		}
-		cube.name = "cube" + i+1
-		cubes.push(cube)
-		scene.add(cubes[i+1])
-	}
-	playerVelVec = new THREE.Vector3(cubes[1].position.x ? playerSpeed : 0, 0, cubes[1].position.z ? playerSpeed : 0)  
-}
-
-function deletePath() {
-	for (let cube of cubes) {
-		let selectedCube = scene.getObjectByName(cube.name)
-    	scene.remove(selectedCube)
-	}
-}
-
-
-window.addEventListener('resize', () => {
-
-    // Update camera
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-
-    // Update renderer
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-	renderer.render(scene, camera)
-	
-})
-
-
-// Key presses
-function keyPress(event) {
-	if (event.key == " ") {
-		if (gameStarted) {
-			if (playerVelVec.x) {
-				playerVelVec = new THREE.Vector3(0, 0, playerSpeed)
-			}
-			else {
-				playerVelVec = new THREE.Vector3(playerSpeed, 0, 0)
-			}
-		}
-		else {
-			gameStarted = true
-			animateGame()
-		}
-	}
-}
-
-
-document.addEventListener('keypress', keyPress)
-
-const clock = new THREE.Clock()
-
-let gameStarted = false
-let gameOver = false
-
-
-function repositionCamera() {
-	camera.position.x = player.position.x + cameraDistance*Math.cos(cameraθ1)*Math.cos(cameraθ2)
-	camera.position.y = player.position.y + cameraDistance*Math.sin(cameraθ2)
-	camera.position.z = player.position.z + cameraDistance*Math.sin(cameraθ1)*Math.cos(cameraθ2)
-
-	camera.lookAt(cameraLookPoint)
-}
-
-repositionCamera()
-
-
-function animateGame() {
-	if (!gameOver) {
-
-		const Δt = clock.getDelta()
-
-		// Move player and camera
-		player.position.addScaledVector(playerVelVec, Δt)
-		camera.position.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
-		cameraLookPoint.addScaledVector(new THREE.Vector3(cameraSpeed, 0, cameraSpeed), Δt)
-
-		const playerToCameraLookPoint = cameraLookPoint.distanceTo(new THREE.Vector3(player.position.x, player.position.y, player.position.z))
-
-
-		if (playerToCameraLookPoint > camera.aspect) {
-			const v = playerToCameraLookPoint - camera.aspect
-			if (player.position.x - cameraLookPoint.x > 0) {
-				camera.position.addScaledVector(new THREE.Vector3(cameraSpeed*v, 0, -cameraSpeed*v), Δt)
-				cameraLookPoint.addScaledVector(new THREE.Vector3(cameraSpeed*v, 0, -cameraSpeed*v), Δt)
-			}
-			else {
-				camera.position.addScaledVector(new THREE.Vector3(-cameraSpeed*v, 0, cameraSpeed*v), Δt)
-				cameraLookPoint.addScaledVector(new THREE.Vector3(-cameraSpeed*v, 0, cameraSpeed*v), Δt)
-			}
-		}
-		
-		camera.lookAt(cameraLookPoint)
-
-		// Check if player falls off the cubes
-		if (player.position.x + playerSize/2 > cubes[currentCubeIndex].position.x + cubeSize/2) {
-			if (cubes[currentCubeIndex+1].position.x > cubes[currentCubeIndex].position.x) {
-				currentCubeIndex++
-			}
-			else if (player.position.x - playerSize/2 > cubes[currentCubeIndex].position.x + cubeSize/2){
-				gameOver = true
-				document.removeEventListener('keypress', keyPress)
-			}
-		}
-		if (player.position.z + playerSize/2 > cubes[currentCubeIndex].position.z + cubeSize/2) {
-			if (cubes[currentCubeIndex+1].position.z > cubes[currentCubeIndex].position.z) {
-				currentCubeIndex++
-			}
-			else if (player.position.z - playerSize/2 > cubes[currentCubeIndex].position.z + cubeSize/2) {
-				gameOver = true
-				document.removeEventListener('keypress', keyPress)
-			}
-		}
-
-
-		renderer.render(scene, camera)
-		
-		requestAnimationFrame(animateGame)
-	}
-	else {
-		animateGameOver()
-	}
+levels = {
+    
+    "Level 1": () => {
+        playerSpeed = 5
+        cameraSpeed = playerSpeed/2
+        audio = magicInTheAir
+        cubeMaterial = new THREE.MeshPhongMaterial({color: 0xe6c69e})
+        goal.material.color.setHex(0xe6c69e)
+        player.material.color.setHex(0x7c048f)
+        body.style.backgroundImage  = "linear-gradient(to top, #cd4583 0%, #fff 100%)"
+        deleteParticles()
+        addParticles("img/star.png", 200, 0.2, 2)
+        generatePath("111111110000001111111000111001111111110000001111111100110100111111100011000111111100011000111111100000000111111110011100111111110001100110001100011000111111110011000110000011000111000000001100110001111101000111000000011000110000000111000110000000011111110000000011000111000000111111110000000001011000111111110010111000000011000110000000001011000111000001100111000000011100111000000001011001111111110010100111000001101001000000001111110000000011111110000000001101001110000001111000111111100011001111111101101000111111001100110001100011000111111111")
+    },
+    
+    "Level 2": () => {
+        playerSpeed = 5.75
+        cameraSpeed = playerSpeed/2
+        audio = fairyTaleFantasy
+        cubeMaterial = new THREE.MeshPhongMaterial({color: 0x03342e})
+        goal.material.color.setHex(0x03342e)
+        player.material.color.setHex(0x7c0200)
+        deleteParticles()
+        addParticles("img/droplet.png", 1000, 0.05, 5)
+        body.style.backgroundImage  = "linear-gradient(to top, #03211c 0%, #7d9267 100%)"
+        generatePath("11111111001110000001100011111110011100000011000111111100111000110011000111110001110001110000001100110011100000011000111111000111000000110000111110001110001001110001111100011100011100011111111100111000111001110001110001110011110001110011111001110010011100111111000111000111000000011001000110000001110011111100011100000011000111000011000110110111001111110001100011100000000101100000000000000")
+    },
+    
+    "Level 3": () => {
+        playerSpeed = 6.5
+        cameraSpeed = playerSpeed/2
+        audio = pianoMelody
+        cubeMaterial = new THREE.MeshPhongMaterial({color: 0xe6c69e})
+        goal.material.color.setHex(0xe6c69e)
+        player.material.color.setHex(0x7c048f)
+        body.style.backgroundImage  = "linear-gradient(to top, #cd4583 0%, #fff 100%)"
+        deleteParticles()
+        addParticles("img/heart.png", 500, 0.2, 2)
+        generatePath("11111111110011000110011110001100001111100110000111111111111100011001100111000111001111000011001100011111111000000110011001100111110011000011110011000001111111111111100110011001100000110011111110011001111111111100111100001110000111111000001111000011100000001110011100001111000111110000001111000011110001111110011100111000111100111111000000111100011110001111111000110011000011110001111111000011110000111111111110000000000111111001100110011100011100111100001100110001111111111111100110011001100001110011111110011001111111111000111100000000000000000000000000000001111111111111111111111")
+    },
+    
+    "Level 4": () => {
+        playerSpeed = 7
+        cameraSpeed = playerSpeed/2
+        audio = marchOfTheSnowmen
+        cubeMaterial = new THREE.MeshPhongMaterial({color: 0x454d59})
+        goal.material.color.setHex(0x454d59)
+        player.material.color.setHex(0xffffff)
+        body.style.backgroundImage  = "linear-gradient(to top, #0c3f8a 0%, #fff 100%)"
+        deleteParticles()
+        addParticles("img/snowflake.png", 5000, 0.1, 2)
+        generatePath("11111111100000011111110000000111111000000011111110000000111111000000011111110000000111111100000011111110000000111000111000011100011100001110001111000100011100001001111000111000011111100001101111111111101100000011110001111001000111000001100011100000011000111000000111111110000001000111000000110011100000011000111000000011111100000010001111000001100011100000010001110000000111111100000010001110000001100111100000010001110000000111111000000110001110000001100111000000100001110000000111111000000100011110001110000111000111100011100001110000000011100011100001110001111000111000111100011100011110000111000111000011100001110001111100011100011100001111111000111000011100011110111000111110011100011111110000001111000111100011100001110001110000111000011100011110001110000111000011100011110001110000111000111100011110001111000111000111101101110100111011011010111101101110001101110011010111001101101001001000100101011101101110001001001001010111011011001010110101110010101010101010100110010101111010111101010010011110101000101011000010010101110101000101011001010010110110100000101000101101101101001010001101010010100010101101001110110111011011101010001010110110111010111001010011010110101011011000100011100001110001110000111000111100011100001110001111000111000011100001110001111000011100011110001110000111000111100011100001110001111011000010011101110001000111011000100011101110001001110111000100011101110011001110111000100111100000110001110000001000011100000010000001111110111000011111011110001111110111000111111100000001110001111000111000111100011110001110001111000111000011100011100111000111000111100011100011110001100110101100110000111000111100011110001110000111000111100011110001110000111000111000011100001110001110000111000011111111111111")
+    }
 
 }
 
-function animateGameOver() {
-	const Δt = clock.getDelta()
-	playerVelVec.y -= 20 * Δt
-	player.position.addScaledVector(playerVelVec, Δt)
-	renderer.render(scene, camera)
-	if (player.position.y > -100) {
-		requestAnimationFrame(animateGameOver)
-	}
+
+for (const [levelName, loadLevel] of Object.entries(levels)) {
+
+    const button = document.createElement("button")
+    
+    button.innerText = levelName
+    button.onclick = () => {
+        loadLevel()
+        resetGame()
+        renderer.render(scene, camera)
+        menu.style.display = "none"
+        progressContainer.style.display = "flex"
+        progressBar.style.width = "0%"
+        currentLevelLoader = button.onclick
+        gameStarted = false
+        gameOver = false
+        gameWon = false
+    }
+    
+    levelsDiv.appendChild(button)
 }
 
-createPath()
-renderer.render(scene, camera)
+
+playAgainButton.onclick = () => {
+    audio.pause()
+    audio.currentTime = 0
+    currentLevelLoader()
+    gameResultMenu.style.display = "none"
+}
+
+backToMenuButton.onclick = () => {
+    audio.pause()
+    audio.currentTime = 0
+    gameResultMenu.style.display = "none"
+    progressContainer.style.display = "none"
+    menu.style.display = "flex"
+    endless = false
+}

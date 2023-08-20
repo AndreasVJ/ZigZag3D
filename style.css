@@ -1,5 +1,88 @@
 body {
     margin: 0;
     overflow: hidden;
-    background: linear-gradient(to top, #000fff 0%, #fff 100%);
+    height: 100vh;
+    background: linear-gradient(to top, #cd4583 0%, #fff 100%);
+    font-family: 'Roboto', sans-serif;
+}
+
+#menu {
+    background-color: rgba(38, 43, 43, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 100vh;
+}
+
+#game-title {
+    font-size: 8vh;
+    margin-bottom: 0;
+    text-align: center;
+    color: white;
+}
+
+#levels {
+    margin: 5vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#levels button {
+    width: 40vh;
+    height: 10vh;
+    font-size: 3vh;
+    margin: 1vh;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 1vh;
+    border: black 0.3vh solid;
+    color: white
+}
+
+#game-result-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    height: 35vh;
+    width: 30vh;
+    background-color: rgba(38, 43, 43, 0.8);
+    border-radius: 0.5rem;
+}
+
+#game-result-text {
+    margin: 0;
+    font-size: 4vh;
+    color: white;
+}
+
+#game-result-menu button {
+    width: 80%;
+    height: 30%;
+    font-size: 3vh;
+    background-color: rgba(38, 43, 43, 0.8);
+    border-radius: 1vh;
+    border: black 0.3vh solid;
+    color: white
+}
+
+#progress-container {
+    display: none;
+    justify-content: center;
+    margin: 2vh;
+}
+
+#progress-background {
+    width: 60vw;
+    height: 2vh;
+    background-color: black;
+}
+
+#progress-bar {
+    background-color: green;
+    height: 100%;
 }
